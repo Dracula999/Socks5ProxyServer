@@ -1,0 +1,6 @@
+Hello. This is a diary for development Socks5 Proxy Server by the person who is a beginner ins Golang.
+
+I will tell my experience of learning the language and share notes on the challenges that I've encountered during the implementation of this project and 
+
+:)
+
