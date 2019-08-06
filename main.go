@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-var socksVersion byte = 05
+var socksVersion byte = 5
 var USERNAME = "usr"
 var PASSWORD = "pass"
 
@@ -46,7 +46,7 @@ func main() {
 	}
 	reqBytes := make([]byte, 256)
 	conn.Read(reqBytes)
-	fmt.Println(reqBytes)
+
 	// Clients sends the following msg in that format ... ->
 	// version	nmethods	methods
 	// 1 byte	1 byte	0 to 255 bytes
@@ -65,6 +65,17 @@ func main() {
 	// Process the requests and send back the response to the client in the following format:
 	// version	rep	rsv	atyp	bnd.addr	bnd.port
 	// 1 byte	1 byte	1 byte	1 byte	4 to 255 bytes	2 bytes
+}
+
+func connectToGivenAddr(buf []byte) net.Conn {
+	bufferReader := bytes.NewReader(buf)
+	bufferReader.ReadByte()
+	connectionType, _ := bufferReader.ReadByte()
+	if connectionType != 1 {
+		return nil
+	}
+	bufferReader.ReadByte()
+
 }
 func parseAuthCredentials(buf []byte) (string, string) {
 	bufferReader := bytes.NewReader(buf)
