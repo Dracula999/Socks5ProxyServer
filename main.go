@@ -8,6 +8,8 @@ import (
 )
 
 var socksVersion byte = 05
+var USERNAME = "usr"
+var PASSWORD = "pass"
 
 func main() {
 	fmt.Println(socksVersion)
@@ -23,10 +25,28 @@ func main() {
 		os.Exit(1)
 	}
 	buf := make([]byte, 257)
-	reqLen, err := conn.Read(buf)
-	fmt.Println(buf)
-	checkHeaders(buf)
-	fmt.Println(reqLen)
+	conn.Read(buf)
+	// checking headers and auth type
+	auth := checkHeaders(buf)
+	if auth == true {
+		conn.Write([]byte{5, 2})
+	}
+	next := make([]byte, 257)
+	conn.Read(next)
+	// parse auth creds
+	username, password := parseAuthCredentials(next)
+	fmt.Println(username, password)
+	// check auth creds
+	if (USERNAME == username) && (PASSWORD == password) {
+		fmt.Println("Client has given right credentials.")
+		conn.Write([]byte{1, 0})
+	} else {
+		fmt.Println("Client has given wrong credentials.")
+		conn.Write([]byte{5, 1})
+	}
+	reqBytes := make([]byte, 256)
+	conn.Read(reqBytes)
+	fmt.Println(reqBytes)
 	// Clients sends the following msg in that format ... ->
 	// version	nmethods	methods
 	// 1 byte	1 byte	0 to 255 bytes
@@ -46,8 +66,18 @@ func main() {
 	// version	rep	rsv	atyp	bnd.addr	bnd.port
 	// 1 byte	1 byte	1 byte	1 byte	4 to 255 bytes	2 bytes
 }
-
-func checkHeaders(buf []byte) {
+func parseAuthCredentials(buf []byte) (string, string) {
+	bufferReader := bytes.NewReader(buf)
+	bufferReader.ReadByte()
+	usernameLen, _ := bufferReader.ReadByte()
+	username := make([]byte, int(usernameLen))
+	bufferReader.Read(username)
+	passwordLen, _ := bufferReader.ReadByte()
+	password := make([]byte, int(passwordLen))
+	bufferReader.Read(password)
+	return string(username), string(password)
+}
+func checkHeaders(buf []byte) bool {
 	bufferReader := bytes.NewReader(buf)
 
 	version, err := bufferReader.ReadByte()
@@ -63,8 +93,15 @@ func checkHeaders(buf []byte) {
 		fmt.Println("Problems reading headers.")
 		os.Exit(1)
 	}
-	var methods = []byte{}
-	for i := 1; i <= int(nmethods); i++ {
-
+	n := int(nmethods)
+	var methods = make([]byte, n)
+	bufferReader.Read(methods)
+	fmt.Print("Methods: ")
+	fmt.Println(methods)
+	for _, method := range methods {
+		if method == 2 {
+			return true
+		}
 	}
+	return false
 }
